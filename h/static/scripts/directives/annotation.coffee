@@ -29,12 +29,15 @@ validate = (value) ->
 # {@link annotationMapper AnnotationMapper service} for persistence.
 ###
 AnnotationController = [
-  '$scope', '$timeout', '$rootScope', '$document',
-  'auth', 'drafts', 'flash', 'permissions',
+  '$scope', '$timeout', '$q', '$rootScope', '$document',
+  'auth', 'drafts', 'flash', 'localstorage', 'permissions',
   'timeHelpers', 'annotationUI', 'annotationMapper'
-  ($scope,   $timeout,   $rootScope,   $document,
-   auth,   drafts,   flash,   permissions,
+  ($scope,   $timeout,   $q,   $rootScope,   $document,
+   auth,   drafts,   flash,   localstorage,   permissions,
    timeHelpers, annotationUI, annotationMapper) ->
+    TAGS_LIST_KEY = 'hypothesis.user.tags.list'
+    TAGS_MAP_KEY = 'hypothesis.user.tags.map'
+
     @annotation = {}
     @action = 'view'
     @document = null
@@ -49,6 +52,21 @@ AnnotationController = [
     model = $scope.annotationGet()
     original = null
     vm = this
+
+    this.editTags = (query) ->
+      deferred = $q.defer()
+
+      savedTags = localstorage.getObject TAGS_LIST_KEY
+      savedTags ?= []
+
+      filterFn = (e) ->
+       e.toLowerCase().indexOf(query.toLowerCase()) > -1
+
+      filteredTags = savedTags.filter(filterFn)
+
+      deferred.resolve filteredTags
+
+      return deferred.promise
 
     ###*
     # @ngdoc method
@@ -144,6 +162,46 @@ AnnotationController = [
         return flash 'info', 'Please sign in to save your annotations.'
       unless validate(@annotation)
         return flash 'info', 'Please add text or a tag before publishing.'
+
+      # Update tag at localstore, refresh to the current
+      savedTags = localstorage.getObject TAGS_MAP_KEY
+      savedTags ?= {}
+
+      for tag in @annotation.tags
+        if model.tags? and (tag.text in model.tags) and savedTags[tag.text]?
+          # We've already processed this, just update the timestamp
+          savedTags[tag.text].updated = Date.now()
+        else
+          # Update the counter too
+          if savedTags[tag.text]?
+            savedTags[tag.text].count += 1
+            savedTags[tag.text].updated = Date.now()
+          else
+            # Create a new entry for it
+            savedTags[tag.text] = {
+              text: tag.text
+              count: 1
+              updated: Date.now()
+            }
+
+      localstorage.setObject TAGS_MAP_KEY, savedTags
+
+      # Now produce TAGS_LIST, ordered by (count, lexical)
+      tagsList = []
+      for tag of savedTags
+        tagsList[tagsList.length] = tag
+
+      # Sort descending
+      compareFn = (t1, t2) ->
+        if savedTags[t1].count != savedTags[t2].count
+          return savedTags[t2].count - savedTags[t1].count
+        else
+          return 1 if t1 < t2
+          return -1 if t2 > t1
+          return 0
+
+      tagsList = tagsList.sort(compareFn)
+      localstorage.setObject TAGS_LIST_KEY, tagsList
 
       angular.extend model, @annotation,
         tags: (tag.text for tag in @annotation.tags)
