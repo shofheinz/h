@@ -1,7 +1,7 @@
 # Watch the UI state and update scope properties.
 class AnnotationUIController
-  this.$inject = ['$rootScope', '$scope', 'annotationUI']
-  constructor:   ( $rootScope,   $scope,   annotationUI ) ->
+  this.$inject = ['$rootScope', '$scope', 'annotationUI', 'crossframe']
+  constructor:   ( $rootScope,   $scope,   annotationUI,   crossframe ) ->
     $rootScope.$watch (-> annotationUI.selectedAnnotationMap), (map={}) ->
       count = Object.keys(map).length
       $scope.selectedAnnotationsCount = count
@@ -16,18 +16,21 @@ class AnnotationUIController
 
     $rootScope.$on 'annotationDeleted', (event, annotation) ->
       annotationUI.removeSelectedAnnotation(annotation)
+      crossframe.notify
+        method: 'deselectAnnotations'
+        params: [annotation.$$tag]
 
 
 class AppController
   this.$inject = [
     '$controller', '$document', '$location', '$route', '$scope', '$window',
-    'auth', 'drafts', 'identity',
+    'auth', 'crossframe', 'drafts', 'identity',
     'permissions', 'streamer', 'annotationUI',
     'annotationMapper', 'threading'
   ]
   constructor: (
      $controller,   $document,   $location,   $route,   $scope,   $window,
-     auth,   drafts,   identity,
+     auth,   crossframe,   drafts,   identity,
      permissions,   streamer,   annotationUI,
      annotationMapper, threading
   ) ->
@@ -118,6 +121,9 @@ class AppController
     $scope.clearSelection = ->
       $scope.search.query = ''
       annotationUI.clearSelectedAnnotations()
+      crossframe.notify
+        method: 'selectAnnotations'
+        params: []
 
     $scope.dialog = visible: false
 
@@ -131,6 +137,9 @@ class AppController
         unless angular.equals $location.search()['q'], query
           $location.search('q', query or null)
           annotationUI.clearSelectedAnnotations()
+          crossframe.notify
+            method: 'selectAnnotations'
+            params: []
 
     $scope.sort = name: 'Location'
     $scope.threading = threading

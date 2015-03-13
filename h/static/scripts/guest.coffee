@@ -170,6 +170,18 @@ module.exports = class Annotator.Guest extends Annotator
           hl.setFocused true
         else
           hl.setFocused false
+    crossframe.on 'selectAnnotations', (ctx, tags=[]) =>
+      # This overrides the previous selection
+      for hl in @anchoring.getHighlights()
+        if hl.annotation.$$tag in tags
+          hl.setSelected true
+        else
+          hl.setSelected false
+    crossframe.on 'deselectAnnotations', (ctx, tags=[]) =>
+      # This removes some annotations from the existing selection
+      for hl in @anchoring.getHighlights()
+        if hl.annotation.$$tag in tags
+          hl.setSelected false
     crossframe.on 'scrollToAnnotation', (ctx, tag) =>
       for a in @anchoring.getAnchors()
         if a.annotation.$$tag is tag
@@ -335,6 +347,14 @@ module.exports = class Annotator.Guest extends Annotator
     else
       # Tell sidebar to show the viewer for these annotations
       this.showAnnotations annotations
+
+      # Switch the highlights into selected mode
+      for hl in @anchoring.getHighlights()
+        if hl.annotation in annotations
+          hl.setSelected true
+        else
+          hl.setSelected false
+
 
   # When hovering on a highlight in highlighting mode,
   # tell the sidebar to hilite the relevant annotations

@@ -96,6 +96,13 @@ class TextHighlight
     else
       $(@_highlights).removeClass('annotator-hl-focused')
 
+  # Mark/unmark this hl as selected
+  setSelected: (value) ->
+    if value
+      $(@_highlights).addClass('annotator-hl-selected')
+    else
+      $(@_highlights).removeClass('annotator-hl-selected')
+
   # Remove all traces of this hl from the document
   removeFromDocument: ->
     for hl in @_highlights

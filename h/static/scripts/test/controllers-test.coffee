@@ -14,6 +14,7 @@ describe 'h:controllers', ->
     fakeAnnotationMapper = null
     fakeAnnotationUI = null
     fakeAuth = null
+    fakeCrossFrame = null
     fakeDrafts = null
     fakeIdentity = null
     fakeLocation = null
@@ -43,6 +44,8 @@ describe 'h:controllers', ->
       fakeAuth = {
         user: undefined
       }
+
+      fakeCrossFrame = {providers: []}
 
       fakeDrafts = {
         remove: sandbox.spy()
@@ -92,6 +95,7 @@ describe 'h:controllers', ->
       $provide.value 'annotationMapper', fakeAnnotationMapper
       $provide.value 'annotationUI', fakeAnnotationUI
       $provide.value 'auth', fakeAuth
+      $provide.value 'crossframe', fakeCrossFrame
       $provide.value 'drafts', fakeDrafts
       $provide.value 'identity', fakeIdentity
       $provide.value '$location', fakeLocation
@@ -267,6 +271,7 @@ describe 'h:controllers', ->
     $scope = null
     $rootScope = null
     annotationUI = null
+    crossframe = null
     sandbox = null
 
     beforeEach module('h')
@@ -283,7 +288,9 @@ describe 'h:controllers', ->
         focusedAnnotationsMap: null
         removeSelectedAnnotation: sandbox.stub()
 
-      $controller 'AnnotationUIController', {$scope, annotationUI}
+      crossframe = notify: sandbox.spy()
+
+      $controller 'AnnotationUIController', {$scope, annotationUI, crossframe}
 
     afterEach ->
       sandbox.restore()
@@ -313,3 +320,8 @@ describe 'h:controllers', ->
       it 'removes the deleted annotation from the selection', ->
         $rootScope.$emit('annotationDeleted', {id: 1})
         assert.calledWith(annotationUI.removeSelectedAnnotation, {id: 1})
+
+      it 'tells crossframe to deselect the deleted annotation', ->
+        $rootScope.$emit('annotationDeleted', {$$tag: 1})
+        assert.called(crossframe.notify)
+        assert.calledWith(crossframe.notify, {method: 'deselectAnnotations', params: [1]})
