@@ -247,6 +247,10 @@ module.exports = class Annotator.Guest extends Annotator
       method: "showAnnotations"
       params: (a.$$tag for a in annotations)
 
+  clearSelection: =>
+    @crossframe?.notify
+      method: "clearSelection"
+
   toggleAnnotationSelection: (annotations) =>
     @crossframe?.notify
       method: "toggleAnnotationSelection"
@@ -407,6 +411,7 @@ module.exports = class Annotator.Guest extends Annotator
     event.preventDefault()
     event.stopPropagation()
     @adder.hide()
+    this.clearSelection()
     annotation = this.setupAnnotation(this.createAnnotation())
     Annotator.Util.getGlobal().getSelection().removeAllRanges()
     this.showEditor(annotation)
